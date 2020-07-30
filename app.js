@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const loadMore = document.querySelector('#load-more-btn');
   const gameTitle = document.querySelector('.title');
   const streamDesBox = document.querySelector('.stream-des-box');
+  let isLoading = false;
 
   function getTopGames() {
     const options = {
@@ -16,8 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
         'Accept': 'application/vnd.twitchtv.v5+json',
       },
     };
-
-
     return fetch('https://api.twitch.tv/kraken/games/top', options).then(data => data.json()).then(data => data.top);
   }
 
@@ -34,32 +33,35 @@ document.addEventListener('DOMContentLoaded', () => {
       },
     };
 
-
-    fetch(`https://api.twitch.tv/kraken/streams/?game=${game}&limit=${totalLimit}&offset=${offset}`, options).then(data => data.json()).then((data) => {
-      data.streams.forEach((stream) => {
-        const div = document.createElement('div');
-        div.className = 'stream';
-        const streamContent = `
-          <a target="_blank" href="${stream.channel.url}">
-            <img src="${stream.preview.medium}">
-            <div class="logo-box">
-              <img class="logo" src="${stream.channel.logo}">
-              <div class="status-box">
-                <div class="status">
-                ${stream.channel.status}
+    if (isLoading === false) {
+      isLoading = true;
+      fetch(`https://api.twitch.tv/kraken/streams/?game=${game}&limit=${totalLimit}&offset=${offset}`, options).then(data => data.json()).then((data) => {
+        data.streams.forEach((stream) => {
+          const div = document.createElement('div');
+          div.className = 'stream';
+          const streamContent = `
+              <a target="_blank" href="${stream.channel.url}">
+                <img src="${stream.preview.medium}">
+                <div class="logo-box">
+                  <img class="logo" src="${stream.channel.logo}">
+                  <div class="status-box">
+                    <div class="status">
+                    ${stream.channel.status}
+                    </div>
+                    <div class="name">
+                    ${stream.channel.name}
+                    </div>
+                  </div>
                 </div>
-                <div class="name">
-                ${stream.channel.name}
-                </div>
-              </div>
-            </div>
-          </a>
-        `;
-        div.innerHTML = streamContent;
-        streamsBox.appendChild(div);
+              </a>
+            `;
+          div.innerHTML = streamContent;
+          streamsBox.appendChild(div);
+        });
+        loadMore.className = 'display';
+        isLoading = false;
       });
-      loadMore.className = 'display';
-    });
+    }
   }
 
   function loadMoreStreams(game = 'Just Chatting', total = 20, startOffset = 20) {
@@ -74,7 +76,6 @@ document.addEventListener('DOMContentLoaded', () => {
         'Accept': 'application/vnd.twitchtv.v5+json',
       },
     };
-
 
     fetch(`https://api.twitch.tv/kraken/streams/?game=${game}&limit=${totalLimit}&offset=${offset}`, options).then(data => data.json()).then((data) => {
       console.log(data.streams);
@@ -110,16 +111,19 @@ document.addEventListener('DOMContentLoaded', () => {
   function addEventListenerToNavbar() {
     let startOffset = 20;
     let currentPage;
+
     navbar.addEventListener('click', (e) => {
-      if (e.target.classList.contains('main--navlink')) {
-        const name = e.target.textContent;
-        if (currentPage !== name || currentPage === undefined) {
-          gameTitle.textContent = name;
-          streamDesBox.classList.add('display');
-          streamsBox.innerHTML = '';
-          loadMore.className = '';
-          getTotalStreams(name);
-          currentPage = name;
+      if (isLoading === false) {
+        if (e.target.classList.contains('main--navlink')) {
+          const name = e.target.textContent;
+          if (currentPage !== name || currentPage === undefined) {
+            streamsBox.innerHTML = '';
+            gameTitle.textContent = name;
+            streamDesBox.classList.add('display');
+            loadMore.className = '';
+            getTotalStreams(name);
+            currentPage = name;
+          }
         }
       }
     });
